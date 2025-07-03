@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.tavo.project.domain.Voltage
+import org.tavo.project.domain.model.Voltage
 
 @Composable
 @Preview

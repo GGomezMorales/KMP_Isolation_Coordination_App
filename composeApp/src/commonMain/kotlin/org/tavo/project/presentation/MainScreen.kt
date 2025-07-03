@@ -8,7 +8,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import org.tavo.project.presentation.screens.conventional.ConventionalMethodView
 
 @Composable
 fun MainScreen() {
@@ -38,7 +37,6 @@ fun DetailScreen(itemId: String) {
     val navController = LocalNavController.current
 
     Column {
-        ConventionalMethodView()
         Text("Details for item $itemId")
         Button(onClick = { navController.popBackStack() }) {
             Text("Go Back")
@@ -51,7 +49,6 @@ fun SettingsScreen() {
     val navController = LocalNavController.current
 
     Column {
-        ConventionalMethodView()
         Text("Settings Screen")
         Button(onClick = { navController.resetToRoot() }) {
             Text("Back to Root")
