@@ -1,0 +1,53 @@
+[
+  {
+    "Um": 300,
+    "lightning_impulse_withstand": [
+      850,
+      950,
+      950,
+      1050
+    ]
+  },
+  {
+    "Um": 362,
+    "lightning_impulse_withstand": [
+      950,
+      1050,
+      1050,
+      1175
+    ]
+  },
+  {
+    "Um": 420,
+    "lightning_impulse_withstand": [
+      1050,
+      1175,
+      1175,
+      1300,
+      1300,
+      1425
+    ]
+  },
+  {
+    "Um": 525,
+    "lightning_impulse_withstand": [
+      1175,
+      1300,
+      1300,
+      1425,
+      1425,
+      1550
+    ]
+  },
+  {
+    "Um": 765,
+    "lightning_impulse_withstand": [
+      1675,
+      1800,
+      1800,
+      1950,
+      1950,
+      2100
+    ]
+  }
+]
