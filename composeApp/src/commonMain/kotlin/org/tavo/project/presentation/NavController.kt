@@ -34,8 +34,8 @@ class NavController(
 
 sealed class Screen(val route: String) {
     object Main : Screen("main")
-    object Detail : Screen("detail")
-    object Settings : Screen("settings")
+    object Conventional : Screen("conventional")
+    object IEC : Screen("iec")
 
     data class ItemDetail(val itemId: String) : Screen("detail/{itemId}") {
         companion object {

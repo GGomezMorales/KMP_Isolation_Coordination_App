@@ -1,0 +1,91 @@
+[
+  {
+    "Um": 3.6,
+    "lightning_impulse_withstand": [
+      20,
+      40
+    ]
+  },
+  {
+    "Um": 7.2,
+    "lightning_impulse_withstand": [
+      40,
+      60
+    ]
+  },
+  {
+    "Um": 12.0,
+    "lightning_impulse_withstand": [
+      60,
+      75,
+      95
+    ]
+  },
+  {
+    "Um": 17.5,
+    "lightning_impulse_withstand": [
+      75,
+      95
+    ]
+  },
+  {
+    "Um": 24.0,
+    "lightning_impulse_withstand": [
+      95,
+      125,
+      145
+    ]
+  },
+  {
+    "Um": 36.0,
+    "lightning_impulse_withstand": [
+      145,
+      170
+    ]
+  },
+  {
+    "Um": 52.0,
+    "lightning_impulse_withstand": [
+      250
+    ]
+  },
+  {
+    "Um": 72.5,
+    "lightning_impulse_withstand": [
+      325
+    ]
+  },
+  {
+    "Um": 123.0,
+    "lightning_impulse_withstand": [
+      450,
+      550
+    ]
+  },
+  {
+    "Um": 145.0,
+    "lightning_impulse_withstand": [
+      450,
+      550,
+      650
+    ]
+  },
+  {
+    "Um": 170.0,
+    "lightning_impulse_withstand": [
+      550,
+      650,
+      750
+    ]
+  },
+  {
+    "Um": 245.0,
+    "lightning_impulse_withstand": [
+      650,
+      750,
+      850,
+      950,
+      1050
+    ]
+  }
+]

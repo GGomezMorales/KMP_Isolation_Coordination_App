@@ -1,6 +1,8 @@
 package org.tavo.project.domain.usecase.movs
 
+import kotlin.math.abs
+
 class ComputeVr1UseCase {
     operator fun invoke(mcov: Double, designFactor: Double): Double =
-        mcov / designFactor
+        abs(mcov / designFactor)
 }

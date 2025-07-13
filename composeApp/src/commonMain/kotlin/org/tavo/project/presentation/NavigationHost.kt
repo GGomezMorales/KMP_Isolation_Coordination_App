@@ -1,8 +1,11 @@
 package org.tavo.project.presentation
 
+import MainScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import org.tavo.project.presentation.screens.conventional.ConventionalMainScreen
+import org.tavo.project.presentation.screens.iec.DetailScreen
 
 @Composable
 fun rememberNavController(startDestination: Screen = Screen.Main): NavController {
@@ -24,9 +27,11 @@ fun NavigationHost(
                 if (index == currentScreen.lastIndex) {
                     when (screen) {
                         is Screen.Main -> MainScreen()
-                        is Screen.Settings -> SettingsScreen()
+                        is Screen.Conventional -> ConventionalMainScreen()
                         is Screen.ItemDetail -> DetailScreen(screen.itemId)
-                        Screen.Detail -> TODO()
+                        is Screen.IEC -> {
+                            // Handle IEC screen if needed
+                        }
                     }
                 }
             }
