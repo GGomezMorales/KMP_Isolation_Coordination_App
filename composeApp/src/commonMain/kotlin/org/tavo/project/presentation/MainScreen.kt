@@ -1,4 +1,3 @@
-// Import Material3 Icons for KMP
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -106,7 +105,7 @@ fun MainScreen() {
                             visible = false
                             coroutineScope.launch {
                                 delay(300)
-                                navController.navigate(Screen.Conventional)
+                                navController.navigate(Screen.ItemDetail("123"))
                             }
                         },
                         modifier = Modifier
@@ -122,7 +121,7 @@ fun MainScreen() {
                             visible = false
                             coroutineScope.launch {
                                 delay(300)
-                                navController.navigate(Screen.ItemDetail("123"))
+                                navController.navigate(Screen.Conventional)
                             }
                         },
                         modifier = Modifier

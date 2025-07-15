@@ -12,6 +12,11 @@ plugins {
     alias(libs.plugins.composeHotReload)
 }
 
+repositories {
+    google()
+    mavenCentral()
+}
+
 kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -54,7 +59,9 @@ kotlin {
                 implementation(libs.androidx.lifecycle.viewmodel)
                 implementation(libs.androidx.lifecycle.runtimeCompose)
 
-                implementation("io.insert-koin:koin-core:3.5.0")
+                implementation("io.insert-koin:koin-core:4.1.0")
+                implementation("io.insert-koin:koin-compose:4.1.0")
+                implementation("io.insert-koin:koin-compose-viewmodel:4.1.0")
             }
         }
 
@@ -69,8 +76,8 @@ kotlin {
                 implementation(compose.preview)
                 implementation(libs.androidx.activity.compose)
 
-                implementation("io.insert-koin:koin-android:3.5.0")
-                implementation("io.insert-koin:koin-android-compose:3.5.0")
+                implementation("io.insert-koin:koin-android:4.1.0")
+                implementation("io.insert-koin:koin-androidx-compose:4.1.0")
             }
         }
 
@@ -79,13 +86,13 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation(libs.kotlinx.coroutinesSwing)
 
-                implementation("io.insert-koin:koin-core:3.5.0")
+                implementation("io.insert-koin:koin-core:4.1.0")
             }
         }
 
         val wasmJsMain by getting {
             dependencies {
-                implementation("io.insert-koin:koin-core:3.5.0")
+                implementation("io.insert-koin:koin-core-wasm-js:4.1.0")
             }
         }
     }
