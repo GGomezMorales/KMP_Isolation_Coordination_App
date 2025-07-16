@@ -35,6 +35,9 @@ class NavController(
 sealed class Screen(val route: String) {
     object Main : Screen("main")
     object Conventional : Screen("conventional")
+    object Setup : Screen("setup")
+    object MOVSelection : Screen("mov_selection")
+    object IsolationCoordination : Screen("isolation_coordination")
     object IEC : Screen("iec")
 
     data class ItemDetail(val itemId: String) : Screen("detail/{itemId}") {

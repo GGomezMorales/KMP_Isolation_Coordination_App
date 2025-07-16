@@ -1,10 +1,13 @@
 package org.tavo.project.presentation
 
-import MainScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import org.tavo.project.presentation.screens.MainScreen
 import org.tavo.project.presentation.screens.conventional.ConventionalMainScreen
+import org.tavo.project.presentation.screens.conventional.sections.IsolationCoordinationScreen
+import org.tavo.project.presentation.screens.conventional.sections.MovSelectionScreen
+import org.tavo.project.presentation.screens.conventional.sections.SetupScreen
 import org.tavo.project.presentation.screens.iec.DetailScreen
 
 @Composable
@@ -32,6 +35,10 @@ fun NavigationHost(
                         is Screen.IEC -> {
                             // Handle IEC screen if needed
                         }
+
+                        is Screen.Setup -> SetupScreen()
+                        is Screen.MOVSelection -> MovSelectionScreen()
+                        is Screen.IsolationCoordination -> IsolationCoordinationScreen()
                     }
                 }
             }

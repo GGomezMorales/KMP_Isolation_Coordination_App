@@ -1,77 +1,97 @@
 package org.tavo.project.presentation.screens.conventional
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
+import org.tavo.project.presentation.LocalNavController
+import org.tavo.project.presentation.NavController
+import org.tavo.project.presentation.Screen
 
 @Composable
 fun ConventionalMainScreen(
     viewModel: ConventionalMainViewModel = koinInject()
 ) {
-    val state by viewModel.state.collectAsState()
+    val navController: NavController = LocalNavController.current
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentAlignment = Alignment.Center
     ) {
-        // ─────────────────────────── Input fields ───────────────────────────
-        OutlinedTextField(
-            value = state.maxVoltage,
-            onValueChange = viewModel::onMaxVoltageChange,
-            label = { Text("Vmax (kV)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.nominalVoltage,
-            onValueChange = viewModel::onNominalVoltageChange,
-            label = { Text("Vnom (kV)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.landingFactor,
-            onValueChange = viewModel::onLandingFactorChange,
-            label = { Text("Factor aterrizaje") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.designFactor,
-            onValueChange = viewModel::onDesignFactorChange,
-            label = { Text("Factor diseño") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = state.timeFactor,
-            onValueChange = viewModel::onTimeFactorChange,
-            label = { Text("Factor tiempo") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // ───────────────────────────── Actions ──────────────────────────────
-        Button(
-            onClick = viewModel::compute,
-            enabled = state.isInputValid,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight(),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Calcular")
-        }
+            Text(
+                text = "Isolation Coordination",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
 
-        // ──────────────────────────── Result UI ─────────────────────────────
-        state.result?.let { result ->
-            Spacer(Modifier.height(16.dp))
-            Text("Resultado", style = MaterialTheme.typography.titleMedium)
-            Text("MCOV: ${'$'}{result.mcov}")
-            Text("TOV: ${'$'}{result.tov}")
-            Text("Vr (seguridad): ${'$'}{result.ratedSafety}")
+            SectionCard(
+                title = "Setup",
+                description = "Define initial parameters",
+                onClick = { navController.navigate(Screen.Setup) }
+            )
+
+            SectionCard(
+                title = "MOV Selection",
+                description = "Choose available MOVs",
+                onClick = { navController.navigate(Screen.MOVSelection) }
+            )
+
+            SectionCard(
+                title = "Isolation Coordination",
+                description = "Manage isolation and coordination",
+                onClick = { navController.navigate(Screen.IsolationCoordination) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }

@@ -5,28 +5,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import org.tavo.project.domain.model.Factor
-import org.tavo.project.domain.model.SurgeArrester
 import org.tavo.project.domain.model.Voltage
 import org.tavo.project.domain.usecase.movs.SelectMOVUseCase
 
-/**
- * UI‐state holder for the conventional coordination calculator.
- */
-data class ConventionalUiState(
-    val maxVoltage: String = "",
-    val nominalVoltage: String = "",
-    val landingFactor: String = "",
-    val designFactor: String = "",
-    val timeFactor: String = "",
-    val result: SurgeArrester? = null,
-) {
-    val isInputValid: Boolean get() =
-        maxVoltage.toDoubleOrNull() != null &&
-                nominalVoltage.toDoubleOrNull() != null &&
-                landingFactor.toDoubleOrNull() != null &&
-                designFactor.toDoubleOrNull() != null &&
-                timeFactor.toDoubleOrNull() != null
-}
 
 class ConventionalMainViewModel(
     private val selectMOVUseCase: SelectMOVUseCase
@@ -36,10 +17,15 @@ class ConventionalMainViewModel(
 
     // ────────────────────────────── Input bindings ──────────────────────────────
     fun onMaxVoltageChange(value: String) = _state.update { it.copy(maxVoltage = value) }
-    fun onNominalVoltageChange(value: String) = _state.update { it.copy(nominalVoltage = value) }
     fun onLandingFactorChange(value: String) = _state.update { it.copy(landingFactor = value) }
     fun onDesignFactorChange(value: String) = _state.update { it.copy(designFactor = value) }
     fun onTimeFactorChange(value: String) = _state.update { it.copy(timeFactor = value) }
+    fun onMovRatedVoltageChange(value: String) = _state.update { it.copy(movRatedVoltage = value) }
+    fun onNpmChange(value: String) = _state.update { it.copy(npm = value) }
+    fun onNprChange(value: String) = _state.update { it.copy(npr = value) }
+    fun onBilNormalizedChange(value: String) = _state.update { it.copy(bilNormalized = value) }
+    fun onKiChange(value: String) = _state.update { it.copy(ki = value) }
+    fun onKChange(value: String) = _state.update { it.copy(k = value) }
 
     // ───────────────────────────────  Business  ────────────────────────────────
     fun compute() {
@@ -50,15 +36,16 @@ class ConventionalMainViewModel(
             landing = current.landingFactor.toDouble(),
             design = current.designFactor.toDouble(),
             time = current.timeFactor.toDouble(),
-            ki = 1.0,
-            k = 1.0
+            ki = current.ki.toDouble(),
+            k = current.k.toDouble()
         )
+
         val voltage = Voltage(
             nominal = current.nominalVoltage.toDouble(),
             max = current.maxVoltage.toDouble()
         )
 
-        val result = selectMOVUseCase(factor, voltage)
-        _state.update { it.copy(result = result) }
+        val surgeArrester = selectMOVUseCase(factor, voltage)
+        _state.update { it.copy(surgeArrester = surgeArrester) }
     }
 }
