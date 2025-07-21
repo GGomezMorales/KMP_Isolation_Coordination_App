@@ -63,5 +63,5 @@ val appModule = module {
 
     // ────────────────────────────── ViewModel ──────────────────────────────
 
-    factory { ConventionalMainViewModel(get()) }
+    single { ConventionalMainViewModel(get()) }
 }

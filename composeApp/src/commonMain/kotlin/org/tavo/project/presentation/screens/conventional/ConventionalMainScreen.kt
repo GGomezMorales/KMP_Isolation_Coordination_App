@@ -2,10 +2,9 @@ package org.tavo.project.presentation.screens.conventional
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +29,7 @@ fun ConventionalMainScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
+                .verticalScroll(rememberScrollState())
                 .wrapContentHeight(),
             verticalArrangement = Arrangement.spacedBy(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -57,6 +57,17 @@ fun ConventionalMainScreen(
                 description = "Manage isolation and coordination",
                 onClick = { navController.navigate(Screen.IsolationCoordination) }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(text = "Back")
+            }
         }
     }
 }

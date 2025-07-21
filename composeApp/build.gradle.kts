@@ -62,6 +62,7 @@ kotlin {
                 implementation("io.insert-koin:koin-core:4.1.0")
                 implementation("io.insert-koin:koin-compose:4.1.0")
                 implementation("io.insert-koin:koin-compose-viewmodel:4.1.0")
+                implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
             }
         }
 
@@ -78,6 +79,7 @@ kotlin {
 
                 implementation("io.insert-koin:koin-android:4.1.0")
                 implementation("io.insert-koin:koin-androidx-compose:4.1.0")
+                implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
             }
         }
 
@@ -87,6 +89,7 @@ kotlin {
                 implementation(libs.kotlinx.coroutinesSwing)
 
                 implementation("io.insert-koin:koin-core:4.1.0")
+                implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
             }
         }
 

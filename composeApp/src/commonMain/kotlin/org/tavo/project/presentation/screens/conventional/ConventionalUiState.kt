@@ -20,10 +20,16 @@ data class ConventionalUiState(
 
 //    User output -----------------------------------------
 
+    val mcov: String = "",
+    val tov: String = "",
+
     val vr1: String = "",
     val vr2: String = "",
     val vr: String = "",
     val bsl: String = "",
+
+    val ratedSafetyVoltage: String = "",
+    val ratedVoltage: String = "",
 
     val surgeArrester: SurgeArrester? = null,
 ) {
