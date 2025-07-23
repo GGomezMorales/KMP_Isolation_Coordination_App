@@ -7,16 +7,16 @@ data class ConventionalUiState(
     val maxVoltage: String = "",
     val nominalVoltage: String = "",
     val landingFactor: String = "",
-    val designFactor: String = "",
-    val timeFactor: String = "",
+    val designFactor: String = "0.8",
+    val timeFactor: String = "1.1",
 
     val movRatedVoltage: String = "",
     val npm: String = "",
     val npr: String = "",
     val bilNormalized: String = "",
 
-    val ki: String = "",
-    val k: String = "",
+    val ki: String = "1.25",
+    val k: String = "0.8",
 
 //    User output -----------------------------------------
 

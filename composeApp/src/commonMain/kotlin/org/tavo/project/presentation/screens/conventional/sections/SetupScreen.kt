@@ -11,13 +11,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
+import org.tavo.project.domain.usecase.movs.*
 import org.tavo.project.presentation.LocalNavController
 import org.tavo.project.presentation.Screen
 import org.tavo.project.presentation.screens.conventional.ConventionalMainViewModel
+import kotlin.math.roundToInt
 
 @Composable
 fun SetupScreen(
-    viewModel: ConventionalMainViewModel = koinInject()
+    viewModel: ConventionalMainViewModel = koinInject(),
+    computeVr1: ComputeVr1UseCase = koinInject(),
+    computeVr2: ComputeVr2UseCase = koinInject(),
+    selectVr: SelectVrUseCase = koinInject(),
+    computeMargin: ComputeSafetyMarginUseCase = koinInject(),
+    computeRatedSafety: ComputeRatedMarginVoltageUseCase = koinInject()
 ) {
     val navController = LocalNavController.current
     val state by viewModel.state.collectAsState()
@@ -35,7 +42,6 @@ fun SetupScreen(
             color = MaterialTheme.colorScheme.primary
         )
 
-        // ────────────────────────── Inputs ──────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -43,17 +49,18 @@ fun SetupScreen(
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Entradas", style = MaterialTheme.typography.titleMedium)
+                Text("Inputs", style = MaterialTheme.typography.titleMedium)
 
                 Spacer(Modifier.height(8.dp))
 
                 val inputs = listOf(
-                    "Vmáx (IEC)" to state.maxVoltage,
-                    "FA (aterriz.)" to state.landingFactor,
-                    "Fd (diseño)" to state.designFactor,
-                    "FT (tiempo)" to state.timeFactor,
-                    "Ki (IEC)" to state.ki,
-                    "K (adicional)" to state.k
+                    "Nomanal Voltage" to state.nominalVoltage,
+                    "Max. Voltage" to state.maxVoltage,
+                    "Landing Factor" to state.landingFactor,
+                    "Design Factor" to state.designFactor,
+                    "Time Factor" to state.timeFactor,
+                    "Ki Factor" to state.ki,
+                    "K Factor" to state.k
                 )
                 inputs.forEach { (label, value) ->
                     Row(
@@ -71,12 +78,13 @@ fun SetupScreen(
                             value = value,
                             onValueChange = { new ->
                                 when (label) {
-                                    "Vmáx (IEC)" -> viewModel.onMaxVoltageChange(new)
-                                    "FA (aterriz.)" -> viewModel.onLandingFactorChange(new)
-                                    "Fd (diseño)" -> viewModel.onDesignFactorChange(new)
-                                    "FT (tiempo)" -> viewModel.onTimeFactorChange(new)
-                                    "Ki (IEC)" -> viewModel.onKiChange(new)
-                                    "K (adicional)" -> viewModel.onKChange(new)
+                                    "Nomanal Voltage" -> viewModel.onNominalVoltageChange(new)
+                                    "Max. Voltage" -> viewModel.onMaxVoltageChange(new)
+                                    "Landing Factor" -> viewModel.onLandingFactorChange(new)
+                                    "Design Factor" -> viewModel.onDesignFactorChange(new)
+                                    "Time Factor" -> viewModel.onTimeFactorChange(new)
+                                    "Ki Factor" -> viewModel.onKiChange(new)
+                                    "K Factor" -> viewModel.onKChange(new)
                                 }
                             },
                             singleLine = true,
@@ -87,15 +95,15 @@ fun SetupScreen(
 
                 Spacer(Modifier.height(12.dp))
                 Button(
-                    onClick = { viewModel.compute() },
+                    onClick = { viewModel.computeSetup() },
+                    enabled = state.isInputValid,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Calcular")
+                    Text("Compute")
                 }
             }
         }
 
-        // ────────────────────────── Resultados ──────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -103,24 +111,26 @@ fun SetupScreen(
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Resultados", style = MaterialTheme.typography.titleMedium)
+                Text("Outputs", style = MaterialTheme.typography.titleMedium)
 
                 Spacer(Modifier.height(8.dp))
 
-                state.surgeArrester?.let { sa ->
-                    val vr1 = sa.mcov / state.designFactor.toDoubleOrNull().orZero()
-                    val vr2 = sa.tov / state.timeFactor.toDoubleOrNull().orZero()
-                    val vr = maxOf(vr1, vr2)
-                    val marginPct = if (vr > 100) 5 else 10
-                    val vn = vr * (1 + marginPct / 100.0)
+                state.surgeArrester?.let { surgeArrester ->
+                    val mcov: Double = surgeArrester.mcov
+                    val tov: Double = surgeArrester.tov
+                    val vr1: Double = computeVr1(mcov, state.designFactor.toDouble())
+                    val vr2: Double = computeVr2(tov, state.timeFactor.toDouble())
+                    val vr: Int = selectVr(vr1, vr2)
+                    val margin: Double = computeMargin(state.nominalVoltage.toDouble())
+                    val ratedSafety: Double = computeRatedSafety(vr, margin)
 
                     val results = listOf(
-                        "MCOV = Vmáx/√3" to (sa.mcov.format(2) + " kV"),
-                        "TOV = MCOV·FA" to (sa.tov.format(2) + " kV"),
-                        "Vr1 = MCOV/Fd" to (vr1.format(2) + " kV"),
-                        "Vr2 = TOV/Ft" to (vr2.format(2) + " kV"),
-                        "Vr (mayor)" to (vr.format(2) + " kV"),
-                        "Margen ${marginPct}%" to (vn.format(2) + " kV")
+                        "MCOV" to "${mcov} kV",
+                        "TOV" to "${tov} kV",
+                        "Vr1" to "${vr1} kV",
+                        "Vr2" to "${vr2} kV",
+                        "Vr" to "${vr} kV",
+                        "Nominal Voltage (Suggested)" to "${ratedSafety.roundToInt()} kV"
                     )
                     results.forEach { (label, value) ->
                         Row(
@@ -141,27 +151,25 @@ fun SetupScreen(
             }
         }
 
-        // ────────────────────────── Navegación ──────────────────────────
+        // ────────────────────────── Navigation ──────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedButton(
-                onClick = { navController.popBackStack() },
+                onClick = { navController.navigate(Screen.Conventional) },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Atrás")
+                Text("Back")
             }
             Button(
                 onClick = { navController.navigate(Screen.MOVSelection) },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Siguiente")
+                Text("Next")
             }
         }
     }
 }
 
-// Helpers
 private fun Double?.orZero() = this ?: 0.0
-private fun Double.format(decimals: Int) = "%.${decimals}f".format(this)
