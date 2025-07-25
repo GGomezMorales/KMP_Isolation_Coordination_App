@@ -5,10 +5,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import org.tavo.project.domain.model.Factor
-import org.tavo.project.domain.model.SurgeArrester
 import org.tavo.project.domain.model.Voltage
 import org.tavo.project.domain.usecase.movs.SelectMOVUseCase
-
 
 class ConventionalMainViewModel(
     private val selectMOVUseCase: SelectMOVUseCase
@@ -33,7 +31,7 @@ class ConventionalMainViewModel(
         val current = _state.value
         if (!current.isInputValid) return
 
-        val factor: Factor = Factor(
+        val factor = Factor(
             landing = current.landingFactor.toDouble(),
             design = current.designFactor.toDouble(),
             time = current.timeFactor.toDouble(),
@@ -41,23 +39,22 @@ class ConventionalMainViewModel(
             k = current.k.toDouble()
         )
 
-        val voltage: Voltage = Voltage(
+        val voltage = Voltage(
             nominal = current.nominalVoltage.toDouble(),
             max = current.maxVoltage.toDouble()
         )
 
-        val surgeArrester: SurgeArrester = selectMOVUseCase(factor, voltage)
+        val surgeArrester = selectMOVUseCase(factor, voltage)
         _state.update { it.copy(surgeArrester = surgeArrester) }
     }
 
     fun computeMovSelection() {
         val current = _state.value
         val setup = current.surgeArrester ?: return
-        // Validar inputs de MOV
-        val nominalMov = current.movRatedVoltage.toDoubleOrNull() ?: return
-        current.npm.toDoubleOrNull() ?: return
-        current.npr.toDoubleOrNull() ?: return
-        current.bilNormalized.toDoubleOrNull() ?: return
+        val movNominal = current.movRatedVoltage.toDoubleOrNull() ?: return
+        val npmVal = current.npm.toDoubleOrNull() ?: return
+        val nprVal = current.npr.toDoubleOrNull() ?: return
+        val bilVal = current.bilNormalized.toDoubleOrNull() ?: return
 
         val factor = Factor(
             landing = current.landingFactor.toDouble(),
@@ -66,16 +63,17 @@ class ConventionalMainViewModel(
             ki = current.ki.toDouble(),
             k = current.k.toDouble()
         )
-        // Para MOV usamos el voltaje nominal ingresado y el MCOV de Setup como máximo
-        val voltage = Voltage(nominal = nominalMov, max = setup.mcov)
-        val result = selectMOVUseCase(factor, voltage)
-        _state.update { it.copy(surgeArrester = result) }
+        val voltage = Voltage(nominal = movNominal, max = setup.mcov)
+
+        var surgeArrester = selectMOVUseCase(factor, voltage)
+        surgeArrester = surgeArrester.copy(npm = npmVal, npr = nprVal)
+        _state.update { it.copy(surgeArrester = surgeArrester, bilNormalized = bilVal.toString()) }
     }
 
     fun computeIsolationCoordination() {
         val current = _state.value
         val setup = current.surgeArrester ?: return
-        // Validar inputs de aislamiento (landing, design, time, ki, k)
+        // Validar inputs de aislamiento
         if (current.landingFactor.toDoubleOrNull() == null) return
         if (current.designFactor.toDoubleOrNull() == null) return
         if (current.timeFactor.toDoubleOrNull() == null) return

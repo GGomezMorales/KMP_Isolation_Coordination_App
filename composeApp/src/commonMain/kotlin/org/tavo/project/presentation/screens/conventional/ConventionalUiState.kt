@@ -33,7 +33,7 @@ data class ConventionalUiState(
 
     val surgeArrester: SurgeArrester? = null,
 ) {
-    //  TODO: Add validation for the input fields
+    //  TODO: Add validation for the input fields. It's possible to separate this logic into a UseCase or Validator class.
     val isInputValid: Boolean
         get() = maxVoltage.toDoubleOrNull() != null &&
                 nominalVoltage.toDoubleOrNull() != null &&

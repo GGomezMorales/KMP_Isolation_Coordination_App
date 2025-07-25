@@ -11,16 +11,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
+import org.tavo.project.domain.usecase.criteria.IsoCoordinationUseCase
+import org.tavo.project.domain.usecase.iso_coord.ComputeBSLUseCase
+import org.tavo.project.domain.usecase.iso_coord.TheoreticalBILUseCase
 import org.tavo.project.presentation.LocalNavController
-import org.tavo.project.presentation.Screen
 import org.tavo.project.presentation.screens.conventional.ConventionalMainViewModel
+
 
 @Composable
 fun IsolationCoordinationScreen(
-    viewModel: ConventionalMainViewModel = koinInject()
+    viewModel: ConventionalMainViewModel = koinInject(),
+    theoreticalBILUseCase: TheoreticalBILUseCase = koinInject(),
+    computeBSLUseCase: ComputeBSLUseCase = koinInject(),
+    isoCoordinationUseCase: IsoCoordinationUseCase = koinInject(),
 ) {
     val navController = LocalNavController.current
     val state by viewModel.state.collectAsState()
+
+    // Validación para habilitar el botón de cálculo
+    val canCompute = state.isInputValid && state.surgeArrester != null
 
     Column(
         modifier = Modifier
@@ -35,69 +44,16 @@ fun IsolationCoordinationScreen(
             color = MaterialTheme.colorScheme.primary
         )
 
-        // ────────────────────────── Entradas ──────────────────────────
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            shape = MaterialTheme.shapes.large
+        // Botón de cálculo (no hay formulario de entrada aquí)
+        Button(
+            onClick = { viewModel.computeIsolationCoordination() },
+            enabled = canCompute,
+            modifier = Modifier.align(Alignment.End)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Entradas", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(8.dp))
-
-                val inputs = listOf(
-                    "FA (aterriz.)" to state.landingFactor,
-                    "Fd (diseño)" to state.designFactor,
-                    "FT (tiempo)" to state.timeFactor,
-                    "Ki (IEC)" to state.ki,
-                    "K (adicional)" to state.k
-                )
-
-                inputs.forEach { (label, value) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = label,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        OutlinedTextField(
-                            value = value,
-                            onValueChange = {
-                                when (label) {
-                                    "FA (aterriz.)" -> viewModel.onLandingFactorChange(it)
-                                    "Fd (diseño)" -> viewModel.onDesignFactorChange(it)
-                                    "FT (tiempo)" -> viewModel.onTimeFactorChange(it)
-                                    "Ki (IEC)" -> viewModel.onKiChange(it)
-                                    "K (adicional)" -> viewModel.onKChange(it)
-                                }
-                            },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = { viewModel.computeIsolationCoordination() },
-                    enabled = state.isInputValid,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Calcular")
-                }
-            }
+            Text("Calcular")
         }
 
-        // ────────────────────────── Resultados ──────────────────────────
+        // Tarjeta de resultados
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -109,19 +65,26 @@ fun IsolationCoordinationScreen(
                 Spacer(Modifier.height(8.dp))
 
                 state.surgeArrester?.let { sa ->
-                    val vr1 = sa.mcov / state.designFactor.toDoubleOrNull().orZero()
-                    val vr2 = sa.tov / state.timeFactor.toDoubleOrNull().orZero()
-                    val vr = maxOf(vr1, vr2)
-                    val marginPct = if (vr > 100) 5 else 10
-                    val vn = vr * (1 + marginPct / 100.0)
+                    // Convertimos ki y k a Double
+                    val ki = state.ki.toDoubleOrNull() ?: 0.0
+                    val k = state.k.toDoubleOrNull() ?: 0.0
+                    // Cálculos mediante casos de uso
+                    val bilTeorico = theoreticalBILUseCase(sa.npr, ki)
+                    val bsl = computeBSLUseCase(bilTeorico, k)
+                    val isoRatio = isoCoordinationUseCase(bsl, sa.npm)
+
+                    // Puedes crear tu propia clasificación según isoRatio si lo deseas
+                    val clase = when {
+                        isoRatio >= 1.5 -> "Apto"
+                        isoRatio >= 1.0 -> "Condicional"
+                        else -> "No apto"
+                    }
 
                     val results = listOf(
-                        "MCOV = Vmáx/√3" to "${sa.mcov} kV",
-                        "TOV = MCOV·FA" to "${sa.tov} kV",
-                        "Vr1 = MCOV/Fd" to "${vr1} kV",
-                        "Vr2 = TOV/FT" to "${vr2} kV",
-                        "Vr (mayor)" to "${vr} kV",
-                        "Margen ${marginPct}%" to "${vn} kV"
+                        "BIL teórico (NPR × Ki)" to "${bilTeorico} kV",
+                        "BSL (BIL teórico × K)" to "${bsl} kV",
+                        "Relación BSL / NPM" to isoRatio.toString(),
+                        "Clase" to clase
                     )
 
                     results.forEach { (label, value) ->
@@ -136,14 +99,14 @@ fun IsolationCoordinationScreen(
                         }
                     }
                 } ?: Text(
-                    "Introduce los datos y pulsa \"Calcular\"",
+                    "Introduce los datos en las vistas anteriores y pulsa \"Calcular\"",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // ────────────────────────── Navegación ──────────────────────────
+        // Navegación
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -154,15 +117,8 @@ fun IsolationCoordinationScreen(
             ) {
                 Text("Atrás")
             }
-            Button(
-                onClick = { navController.navigate(Screen.MOVSelection) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Siguiente")
-            }
         }
     }
 }
 
-// Helpers
 private fun Double?.orZero() = this ?: 0.0

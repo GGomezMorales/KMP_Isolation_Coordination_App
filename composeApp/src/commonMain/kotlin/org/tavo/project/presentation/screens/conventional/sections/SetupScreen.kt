@@ -9,7 +9,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.koin.compose.koinInject
 import org.tavo.project.domain.usecase.movs.*
 import org.tavo.project.presentation.LocalNavController
@@ -39,7 +41,9 @@ fun SetupScreen(
         Text(
             text = "Setup",
             style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold
         )
 
         Card(
@@ -49,12 +53,17 @@ fun SetupScreen(
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Inputs", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Inputs",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
                 Spacer(Modifier.height(8.dp))
 
                 val inputs = listOf(
-                    "Nomanal Voltage" to state.nominalVoltage,
+                    "Nominal Voltage" to state.nominalVoltage,
                     "Max. Voltage" to state.maxVoltage,
                     "Landing Factor" to state.landingFactor,
                     "Design Factor" to state.designFactor,
@@ -67,18 +76,21 @@ fun SetupScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = label,
                             modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                         OutlinedTextField(
                             value = value,
                             onValueChange = { new ->
                                 when (label) {
-                                    "Nomanal Voltage" -> viewModel.onNominalVoltageChange(new)
+                                    "Nominal Voltage" -> viewModel.onNominalVoltageChange(new)
                                     "Max. Voltage" -> viewModel.onMaxVoltageChange(new)
                                     "Landing Factor" -> viewModel.onLandingFactorChange(new)
                                     "Design Factor" -> viewModel.onDesignFactorChange(new)
@@ -88,7 +100,14 @@ fun SetupScreen(
                                 }
                             },
                             singleLine = true,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(0.5f)
+                        )
+                        Text(
+                            text = if (label == "Nominal Voltage" || label == "Max. Voltage") " kV" else "",
+                            modifier = Modifier.weight(0.1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
@@ -111,7 +130,13 @@ fun SetupScreen(
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Outputs", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "Outputs",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
                 Spacer(Modifier.height(8.dp))
 
@@ -130,7 +155,7 @@ fun SetupScreen(
                         "Vr1" to "${vr1} kV",
                         "Vr2" to "${vr2} kV",
                         "Vr" to "${vr} kV",
-                        "Nominal Voltage (Suggested)" to "${ratedSafety.roundToInt()} kV"
+                        "Nominal Voltage (Suggested for Surge Arrester)" to "${ratedSafety.roundToInt()} kV"
                     )
                     results.forEach { (label, value) ->
                         Row(
@@ -139,12 +164,22 @@ fun SetupScreen(
                                 .padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(label, style = MaterialTheme.typography.bodyMedium)
-                            Text(value, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = value,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 } ?: Text(
-                    "Introduce todos los datos y pulsa \"Calcular\"",
+                    "Enter all the information and press \"Compute\"",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

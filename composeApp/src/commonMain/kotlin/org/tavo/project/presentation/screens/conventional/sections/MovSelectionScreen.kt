@@ -9,18 +9,28 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.koin.compose.koinInject
+import org.tavo.project.domain.usecase.criteria.ProtectionCapacityUseCase
 import org.tavo.project.presentation.LocalNavController
 import org.tavo.project.presentation.Screen
 import org.tavo.project.presentation.screens.conventional.ConventionalMainViewModel
 
 @Composable
 fun MovSelectionScreen(
-    viewModel: ConventionalMainViewModel = koinInject()
+    viewModel: ConventionalMainViewModel = koinInject(),
+    protectionCapacity: ProtectionCapacityUseCase = koinInject(),
 ) {
     val navController = LocalNavController.current
     val state by viewModel.state.collectAsState()
+
+    val nextEnabled = state.surgeArrester != null &&
+            state.movRatedVoltage.toDoubleOrNull() != null &&
+            state.npm.toDoubleOrNull() != null &&
+            state.npr.toDoubleOrNull() != null &&
+            state.bilNormalized.toDoubleOrNull() != null
 
     Column(
         modifier = Modifier
@@ -32,10 +42,11 @@ fun MovSelectionScreen(
         Text(
             text = "MOV Selection",
             style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold
         )
 
-        // ────────────────────────── Inputs ──────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -46,7 +57,12 @@ fun MovSelectionScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Entradas MOV", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Inputs",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(Modifier.height(8.dp))
 
                 val inputs = listOf(
@@ -61,12 +77,15 @@ fun MovSelectionScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = label,
                             modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                         OutlinedTextField(
                             value = value,
@@ -79,8 +98,10 @@ fun MovSelectionScreen(
                                 }
                             },
                             singleLine = true,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(0.5f)
                         )
+                        // Espacio reservado para alineación
+                        Spacer(modifier = Modifier.weight(0.1f))
                     }
                 }
 
@@ -90,12 +111,11 @@ fun MovSelectionScreen(
                     enabled = state.isInputValid,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Calcular")
+                    Text("Compute")
                 }
             }
         }
 
-        // ────────────────────────── Resultados ──────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -103,23 +123,28 @@ fun MovSelectionScreen(
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Resultados", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "Outputs",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
                 Spacer(Modifier.height(8.dp))
 
                 state.surgeArrester?.let { sa ->
-                    val vr1 = sa.mcov / state.designFactor.toDoubleOrNull().orZero()
-                    val vr2 = sa.tov / state.timeFactor.toDoubleOrNull().orZero()
-                    val vr = maxOf(vr1, vr2)
-                    val marginPct = if (vr > 100) 5 else 10
-                    val vn = vr * (1 + marginPct / 100.0)
+                    val bilNormalized = state.bilNormalized.toDoubleOrNull() ?: 0.0
+                    val nprValue = sa.npr
+                    val ratio = if (nprValue != 0.0) bilNormalized / nprValue else 0.0
+                    val isValid = if (bilNormalized != 0.0) {
+                        protectionCapacity(bilNormalized, nprValue)
+                    } else {
+                        false
+                    }
 
                     val results = listOf(
-                        "MCOV" to "${sa.mcov} kV",
-                        "TOV" to "${sa.tov} kV",
-                        "Vr1" to "${vr1} kV",
-                        "Vr2" to "${vr2} kV",
-                        "Vr (mayor)" to "${vr} kV",
-                        "Margen ${marginPct}%" to "${vn} kV"
+                        "Normalized BIL / NPR" to "${ratio}",
+                        "Is valid for Isolation Coordination?" to if (isValid) "Yes" else "No",
                     )
 
                     results.forEach { (label, value) ->
@@ -129,12 +154,22 @@ fun MovSelectionScreen(
                                 .padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(label, style = MaterialTheme.typography.bodyMedium)
-                            Text(value, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = value,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 } ?: Text(
-                    "Introduce los datos y pulsa \"Calcular\"",
+                    "Enter all the information and press \"Compute\"",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -154,6 +189,7 @@ fun MovSelectionScreen(
             }
             Button(
                 onClick = { navController.navigate(Screen.IsolationCoordination) },
+                enabled = nextEnabled,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Next")
@@ -162,5 +198,5 @@ fun MovSelectionScreen(
     }
 }
 
-// Helpers
+
 private fun Double?.orZero() = this ?: 0.0
