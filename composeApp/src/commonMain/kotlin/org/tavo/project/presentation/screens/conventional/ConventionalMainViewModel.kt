@@ -1,59 +1,95 @@
 package org.tavo.project.presentation.screens.conventional
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import org.tavo.project.domain.model.Factor
-import org.tavo.project.domain.model.SurgeArrester
 import org.tavo.project.domain.model.Voltage
 import org.tavo.project.domain.usecase.movs.SelectMOVUseCase
 
 class ConventionalMainViewModel(
     private val selectMOVUseCase: SelectMOVUseCase
 ) {
-    var maxVoltage by mutableStateOf("")
-        private set
-    var nominalVoltage by mutableStateOf("")
-        private set
-    var landingFactor by mutableStateOf("")
-        private set
-    var designFactor by mutableStateOf("")
-        private set
-    var timeFactor by mutableStateOf("")
-        private set
+    private val _state = MutableStateFlow(ConventionalUiState())
+    val state: StateFlow<ConventionalUiState> = _state.asStateFlow()
 
-    var result by mutableStateOf<SurgeArrester?>(null)
-        private set
+    // ──────────────────── Input bindings ────────────────────
+    fun onNominalVoltageChange(value: String) = _state.update { it.copy(nominalVoltage = value) }
+    fun onMaxVoltageChange(value: String) = _state.update { it.copy(maxVoltage = value) }
+    fun onLandingFactorChange(value: String) = _state.update { it.copy(landingFactor = value) }
+    fun onDesignFactorChange(value: String) = _state.update { it.copy(designFactor = value) }
+    fun onTimeFactorChange(value: String) = _state.update { it.copy(timeFactor = value) }
+    fun onMovRatedVoltageChange(value: String) = _state.update { it.copy(movRatedVoltage = value) }
+    fun onNpmChange(value: String) = _state.update { it.copy(npm = value) }
+    fun onNprChange(value: String) = _state.update { it.copy(npr = value) }
+    fun onBilNormalizedChange(value: String) = _state.update { it.copy(bilNormalized = value) }
+    fun onKiChange(value: String) = _state.update { it.copy(ki = value) }
+    fun onKChange(value: String) = _state.update { it.copy(k = value) }
 
-    fun onMaxVoltageChanged(value: String) {
-        maxVoltage = value
+    fun computeSetup() {
+        val current = _state.value
+        if (!current.isInputValid) return
+
+        val factor = Factor(
+            landing = current.landingFactor.toDouble(),
+            design = current.designFactor.toDouble(),
+            time = current.timeFactor.toDouble(),
+            ki = current.ki.toDouble(),
+            k = current.k.toDouble()
+        )
+
+        val voltage = Voltage(
+            nominal = current.nominalVoltage.toDouble(),
+            max = current.maxVoltage.toDouble()
+        )
+
+        val surgeArrester = selectMOVUseCase(factor, voltage)
+        _state.update { it.copy(surgeArrester = surgeArrester) }
     }
 
-    fun onNominalVoltageChanged(value: String) {
-        nominalVoltage = value
+    fun computeMovSelection() {
+        val current = _state.value
+        val setup = current.surgeArrester ?: return
+        val movNominal = current.movRatedVoltage.toDoubleOrNull() ?: return
+        val npmVal = current.npm.toDoubleOrNull() ?: return
+        val nprVal = current.npr.toDoubleOrNull() ?: return
+        val bilVal = current.bilNormalized.toDoubleOrNull() ?: return
+
+        val factor = Factor(
+            landing = current.landingFactor.toDouble(),
+            design = current.designFactor.toDouble(),
+            time = current.timeFactor.toDouble(),
+            ki = current.ki.toDouble(),
+            k = current.k.toDouble()
+        )
+        val voltage = Voltage(nominal = movNominal, max = setup.mcov)
+
+        var surgeArrester = selectMOVUseCase(factor, voltage)
+        surgeArrester = surgeArrester.copy(npm = npmVal, npr = nprVal)
+        _state.update { it.copy(surgeArrester = surgeArrester, bilNormalized = bilVal.toString()) }
     }
 
-    fun onLandingFactorChanged(value: String) {
-        landingFactor = value
-    }
+    fun computeIsolationCoordination() {
+        val current = _state.value
+        val setup = current.surgeArrester ?: return
+        // Validar inputs de aislamiento
+        if (current.landingFactor.toDoubleOrNull() == null) return
+        if (current.designFactor.toDoubleOrNull() == null) return
+        if (current.timeFactor.toDoubleOrNull() == null) return
+        if (current.ki.toDoubleOrNull() == null) return
+        if (current.k.toDoubleOrNull() == null) return
 
-    fun onDesignFactorChanged(value: String) {
-        designFactor = value
-    }
-
-    fun onTimeFactorChanged(value: String) {
-        timeFactor = value
-    }
-
-    fun compute() {
-        val maxV = maxVoltage.toDoubleOrNull() ?: return
-        val nomV = nominalVoltage.toDoubleOrNull() ?: return
-        val landing = landingFactor.toDoubleOrNull() ?: return
-        val design = designFactor.toDoubleOrNull() ?: return
-        val time = timeFactor.toDoubleOrNull() ?: return
-
-        val factor = Factor(landing = landing, design = design, time = time, ki = 1.0, k = 1.0)
-        val voltage = Voltage(nominal = nomV, max = maxV)
-        result = selectMOVUseCase.invoke(factor, voltage)
+        val factor = Factor(
+            landing = current.landingFactor.toDouble(),
+            design = current.designFactor.toDouble(),
+            time = current.timeFactor.toDouble(),
+            ki = current.ki.toDouble(),
+            k = current.k.toDouble()
+        )
+        // Para aislamiento usamos MCOV y TOV de Setup como rango
+        val voltage = Voltage(nominal = setup.mcov, max = setup.tov)
+        val result = selectMOVUseCase(factor, voltage)
+        _state.update { it.copy(surgeArrester = result) }
     }
 }

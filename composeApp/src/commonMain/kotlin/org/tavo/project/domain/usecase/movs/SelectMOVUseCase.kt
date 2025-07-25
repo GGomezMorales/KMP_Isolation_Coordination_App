@@ -20,11 +20,11 @@ class SelectMOVUseCase(
         val vr2: Double = computeVr2(tov, factor.time)
         val vr: Int = selectVr(vr1, vr2)
         val margin: Double = computeMargin(voltage.nominal)
-        val ratedSafetyVoltage: Int = computeRatedSafety(vr, margin)
+        val ratedSafetyVoltage: Double = computeRatedSafety(vr, margin)
 
         return SurgeArrester(
             rated = 1.0,
-            ratedSafety = ratedSafetyVoltage.toDouble(),
+            ratedSafety = ratedSafetyVoltage,
             npm = 1.0,
             npr = 1.0,
             mcov = mcov,
