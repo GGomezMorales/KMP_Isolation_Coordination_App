@@ -3,6 +3,7 @@ package org.tavo.project.presentation.screens.conventional.sections
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,11 @@ import org.tavo.project.presentation.LocalNavController
 import org.tavo.project.presentation.Screen
 import org.tavo.project.presentation.screens.conventional.ConventionalMainViewModel
 import org.tavo.project.presentation.screens.conventional.ConventionalUiState
+
+data class VoltageData(
+    val Um: Double,
+    val lightning_impulse_withstand: List<Int>
+)
 
 private val ElectricBlue = Color(0xFF1E3A8A)
 private val SteelBlue = Color(0xFF3B82F6)
@@ -123,7 +129,7 @@ fun MovSelectionScreen(
                 },
                 navigationIcon = {
                     IconButton(
-                        onClick = { navController.navigate(Screen.Setup) }
+                        onClick = { navController.navigate(Screen.Conventional) }
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
@@ -339,6 +345,7 @@ fun MovSelectionScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MovInputsCard(
     state: ConventionalUiState,
@@ -390,7 +397,7 @@ private fun MovInputsCard(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            val movInputs = listOf(
+            val regularInputs = listOf(
                 MovInputField(
                     label = "MOV Rated Voltage",
                     value = state.movRatedVoltage,
@@ -414,21 +421,20 @@ private fun MovInputsCard(
                     icon = Icons.Default.Shield,
                     description = "Nominal protection ratio",
                     onValueChange = { viewModel.onNprChange(it) }
-                ),
-                MovInputField(
-                    label = "Normalized BIL",
-                    value = state.bilNormalized,
-                    unit = "kV",
-                    icon = Icons.Default.FlashOn,
-                    description = "Basic insulation level normalized",
-                    onValueChange = { viewModel.onBilNormalizedChange(it) }
                 )
             )
 
-            movInputs.forEach { input ->
+            regularInputs.forEach { input ->
                 MovInputRow(input)
                 Spacer(modifier = Modifier.height(16.dp))
             }
+
+            NormalizedBilInputRow(
+                state = state,
+                viewModel = viewModel
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -453,6 +459,203 @@ private fun MovInputsCard(
                     Text(
                         text = "Compute",
                         fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NormalizedBilInputRow(
+    state: ConventionalUiState,
+    viewModel: ConventionalMainViewModel
+) {
+    var showDropdown by remember { mutableStateOf(false) }
+
+    val availableValues = state.selectedVoltage?.lightning_impulse_withstand ?: emptyList()
+    val hasVoltageSelection = state.selectedVoltage != null
+
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        color = AccentOrange.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FlashOn,
+                    contentDescription = null,
+                    tint = AccentOrange,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Normalized BIL",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = DeepNavy
+                    )
+                )
+                Text(
+                    text = if (hasVoltageSelection) {
+                        "Select from lightning impulse values or enter custom"
+                    } else {
+                        "Select voltage in Setup first for predefined values"
+                    },
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = if (hasVoltageSelection) SlateGray else WarningAmber
+                    )
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (hasVoltageSelection) {
+                    ExposedDropdownMenuBox(
+                        expanded = showDropdown,
+                        onExpandedChange = { showDropdown = !showDropdown },
+                        modifier = Modifier.width(70.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = if (availableValues.contains(state.bilNormalized.toIntOrNull())) "⚡" else "",
+                            onValueChange = { },
+                            readOnly = true,
+                            placeholder = { Text("⚡", style = MaterialTheme.typography.bodySmall) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown)
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = AccentOrange,
+                                focusedLabelColor = AccentOrange,
+                                unfocusedBorderColor = SlateGray.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodySmall
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = showDropdown,
+                            onDismissRequest = { showDropdown = false }
+                        ) {
+                            availableValues.forEach { value ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "$value kV",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.onBilNormalizedChange(value.toString())
+                                        showDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+
+                OutlinedTextField(
+                    value = state.bilNormalized,
+                    onValueChange = { viewModel.onBilNormalizedChange(it) },
+                    modifier = Modifier.width(100.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentOrange,
+                        focusedLabelColor = AccentOrange,
+                        unfocusedBorderColor = SlateGray.copy(alpha = 0.3f)
+                    )
+                )
+
+                Text(
+                    text = "kV",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = SlateGray
+                    ),
+                    modifier = Modifier.width(30.dp)
+                )
+            }
+        }
+
+        if (hasVoltageSelection && availableValues.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 44.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "Available:",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = SlateGray,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+
+                availableValues.take(4).forEach { value ->
+                    val isSelected = state.bilNormalized == value.toString()
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) AccentOrange else AccentOrange.copy(alpha = 0.1f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .let { modifier ->
+                                if (!isSelected) {
+                                    modifier.clickable {
+                                        viewModel.onBilNormalizedChange(value.toString())
+                                    }
+                                } else modifier
+                            }
+                    ) {
+                        Text(
+                            text = "$value",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = if (isSelected) Color.White else AccentOrange
+                            )
+                        )
+                    }
+                }
+
+                if (availableValues.size > 4) {
+                    Text(
+                        text = "+${availableValues.size - 4} more",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = SlateGray
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                            .padding(start = 4.dp)
                     )
                 }
             }

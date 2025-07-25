@@ -59,9 +59,11 @@ fun IsolationCoordinationScreen(
     var visible by remember { mutableStateOf(false) }
     var headerVisible by remember { mutableStateOf(false) }
     var resultsVisible by remember { mutableStateOf(false) }
-    var computePressed by remember { mutableStateOf(false) }
 
-    val canCompute = state.isInputValid && state.surgeArrester != null
+    val canCompute = state.surgeArrester != null &&
+            state.ki.toDoubleOrNull() != null &&
+            state.k.toDoubleOrNull() != null &&
+            state.bilNormalized.toDoubleOrNull() != null
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -70,10 +72,12 @@ fun IsolationCoordinationScreen(
         visible = true
     }
 
-    LaunchedEffect(computePressed) {
-        if (computePressed && state.surgeArrester != null) {
-            delay(500)
+    LaunchedEffect(state.surgeArrester, state.ki, state.k, state.bilNormalized) {
+        if (canCompute) {
+            delay(300)
             resultsVisible = true
+        } else {
+            resultsVisible = false
         }
     }
 
@@ -121,7 +125,7 @@ fun IsolationCoordinationScreen(
                 },
                 navigationIcon = {
                     IconButton(
-                        onClick = { navController.navigate(Screen.MOVSelection) }
+                        onClick = { navController.navigate(Screen.Conventional) }
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
@@ -258,21 +262,9 @@ fun IsolationCoordinationScreen(
 
                 AnimatedVisibility(
                     visible = visible,
-                    enter = fadeIn(tween(800, delayMillis = 400)) +
-                            slideInVertically(
-                                initialOffsetY = { it / 2 },
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy
-                                )
-                            )
+                    enter = fadeIn(tween(800, delayMillis = 300))
                 ) {
-                    ComputeCard(
-                        canCompute = canCompute,
-                        onCompute = {
-                            viewModel.computeIsolationCoordination()
-                            computePressed = true
-                        }
-                    )
+                    ParametersStatusCard(state = state, canCompute = canCompute)
                 }
 
                 AnimatedVisibility(
@@ -348,9 +340,9 @@ fun IsolationCoordinationScreen(
 }
 
 @Composable
-private fun ComputeCard(
-    canCompute: Boolean,
-    onCompute: () -> Unit
+private fun ParametersStatusCard(
+    state: ConventionalUiState,
+    canCompute: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -363,8 +355,7 @@ private fun ComputeCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(24.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -375,21 +366,24 @@ private fun ComputeCard(
                         .size(40.dp)
                         .background(
                             brush = Brush.linearGradient(
-                                colors = listOf(AccentOrange, Color(0xFFDC2626))
+                                colors = listOf(
+                                    if (canCompute) SuccessGreen else WarningAmber,
+                                    if (canCompute) Color(0xFF047857) else Color(0xFFD97706)
+                                )
                             ),
                             shape = RoundedCornerShape(10.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
+                        imageVector = if (canCompute) Icons.Default.CheckCircle else Icons.Default.Warning,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Text(
-                    text = "Ready for Analysis",
+                    text = "Parameters Status",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = DeepNavy
@@ -399,43 +393,75 @@ private fun ComputeCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = if (canCompute) {
-                    "All parameters are configured. Click below to perform the final isolation coordination analysis."
-                } else {
-                    "Please complete all previous steps before running the analysis."
-                },
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = SlateGray
-                ),
-                textAlign = TextAlign.Center
+            val debugInfo = listOf(
+                "Surge Arrester" to if (state.surgeArrester != null) "✓ Configured" else "✗ Missing",
+                "Ki Factor" to if (state.ki.isNotBlank()) "✓ ${state.ki}" else "✗ Missing",
+                "K Factor" to if (state.k.isNotBlank()) "✓ ${state.k}" else "✗ Missing",
+                "BIL Normalized" to if (state.bilNormalized.isNotBlank()) "✓ ${state.bilNormalized} kV" else "✗ Missing",
+                "NPR" to if (state.surgeArrester != null) "✓ ${state.surgeArrester!!.npr} kV" else "✗ Missing",
+                "NPM" to if (state.surgeArrester != null) "✓ ${state.surgeArrester!!.npm} kV" else "✗ Missing"
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            debugInfo.forEach { (label, value) ->
+                val isValid = value.startsWith("✓")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = DeepNavy,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = if (isValid) SuccessGreen else ErrorRed,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+            }
 
-            Button(
-                onClick = onCompute,
-                enabled = canCompute,
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (canCompute) AccentOrange else SlateGray.copy(alpha = 0.3f),
-                    contentColor = Color.White
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Calculate,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Run Analysis",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (canCompute) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = SuccessGreen.copy(alpha = 0.1f)
+                    ),
+                    border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = "✓ All parameters ready - Analysis will appear below",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = SuccessGreen,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+            } else {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = WarningAmber.copy(alpha = 0.1f)
+                    ),
+                    border = BorderStroke(1.dp, WarningAmber.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = "⚠ Complete all previous steps to see analysis results",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = WarningAmber,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
             }
         }
     }
@@ -496,25 +522,39 @@ private fun IsolationResultsCard(
 
             state.surgeArrester?.let { sa ->
                 val ki = state.ki.toDoubleOrNull() ?: 0.0
-                val k = state.k.toDoubleOrNull() ?: 0.0
-                val bilTeorico = theoreticalBILUseCase(sa.npr, ki)
-                val bsl = computeBSLUseCase(bilTeorico, k)
-                val isoRatio = isoCoordinationUseCase(bsl, sa.npm)
+                val k = state.k.toDoubleOrNull() ?: 1.0
+                val bilNormalized = state.bilNormalized.toDoubleOrNull() ?: 0.0
+                val npr = sa.npr
+                val npm = sa.npm
 
-                val classificationData = getClassificationData(isoRatio)
+                val bilTeorico = theoreticalBILUseCase(npr, ki)
+                val bsl = computeBSLUseCase(bilNormalized, k)
+                val isoRatio = isoCoordinationUseCase(bsl, npm)
+
+                InputDataCard(
+                    data = mapOf(
+                        "NPR" to "$npr kV",
+                        "NPM" to "$npm kV",
+                        "Ki Factor" to "$ki",
+                        "K Factor" to "$k",
+                        "BIL Normalized" to "$bilNormalized kV"
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 val calculations = listOf(
                     CalculationResult(
                         title = "Theoretical BIL",
-                        formula = "NPR × Ki",
+                        formula = "NPR × Ki = $npr × $ki",
                         value = bilTeorico,
                         unit = "kV",
                         icon = Icons.Default.Calculate,
                         color = ElectricBlue
                     ),
                     CalculationResult(
-                        title = "BSL",
-                        formula = "BIL theoretical × K",
+                        title = "BSL (Basic Switching Level)",
+                        formula = "BIL Normalized × K = ${String.format("%.2f", bilNormalized)} × $k",
                         value = bsl,
                         unit = "kV",
                         icon = Icons.Default.ElectricalServices,
@@ -522,7 +562,7 @@ private fun IsolationResultsCard(
                     ),
                     CalculationResult(
                         title = "Coordination Ratio",
-                        formula = "BSL / NPM",
+                        formula = "BSL / NPM = ${String.format("%.2f", bsl)} / $npm",
                         value = isoRatio,
                         unit = "",
                         icon = Icons.Default.CompareArrows,
@@ -537,6 +577,7 @@ private fun IsolationResultsCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                val classificationData = getClassificationData(isoRatio)
                 ClassificationCard(classificationData)
 
             } ?: run {
@@ -553,11 +594,59 @@ private fun IsolationResultsCard(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Complete previous steps and click \"Run Analysis\"",
+                        text = "Complete previous steps to see analysis results",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = SlateGray
                         ),
                         textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InputDataCard(data: Map<String, String>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF8FAFC)
+        ),
+        border = BorderStroke(1.dp, SlateGray.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Input Values",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = DeepNavy
+                ),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            data.forEach { (key, value) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = key,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = SlateGray
+                        )
+                    )
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = DeepNavy,
+                            fontWeight = FontWeight.Medium
+                        )
                     )
                 }
             }

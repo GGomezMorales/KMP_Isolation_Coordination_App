@@ -69,6 +69,7 @@ fun SetupScreen(
         headerVisible = true
         delay(200)
         visible = true
+        viewModel.loadVoltageData()
     }
 
     LaunchedEffect(state.surgeArrester) {
@@ -310,12 +311,7 @@ fun SetupScreen(
                                             "Nominal Voltage",
                                             state.nominalVoltage,
                                             "kV"
-                                        ) { viewModel.onNominalVoltageChange(it) },
-                                        InputField(
-                                            "Max. Voltage",
-                                            state.maxVoltage,
-                                            "kV"
-                                        ) { viewModel.onMaxVoltageChange(it) }
+                                        ) { viewModel.onNominalVoltageChange(it) }
                                     )
                                 ),
                                 InputGroup(
@@ -353,6 +349,17 @@ fun SetupScreen(
 
                             inputGroups.forEach { group ->
                                 InputGroupCard(group)
+
+                                if (group.title == "Voltage Parameters") {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    VoltageDropdownInGroup(
+                                        selectedVoltage = state.selectedVoltage,
+                                        voltageOptions = state.voltageOptions,
+                                        onVoltageSelected = { viewModel.onVoltageSelected(it) },
+                                        onMaxVoltageChange = { viewModel.onMaxVoltageChange(it) }
+                                    )
+                                }
+
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
 
@@ -385,6 +392,8 @@ fun SetupScreen(
                         }
                     }
                 }
+
+
 
                 AnimatedVisibility(
                     visible = resultsVisible,
@@ -561,6 +570,276 @@ private fun InputGroupCard(group: InputGroup) {
                             color = SlateGray
                         )
                     )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VoltageDropdownInGroup(
+    selectedVoltage: VoltageData?,
+    voltageOptions: List<VoltageData>,
+    onVoltageSelected: (VoltageData) -> Unit,
+    onMaxVoltageChange: (String) -> Unit = {}
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Max. Voltage",
+            modifier = Modifier.weight(1.2f),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Medium,
+                color = DeepNavy
+            )
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.weight(0.8f)
+        ) {
+            OutlinedTextField(
+                value = selectedVoltage?.let { "${it.Um}" } ?: "",
+                onValueChange = { },
+                readOnly = true,
+                placeholder = { Text("Select", style = MaterialTheme.typography.bodySmall) },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ElectricBlue,
+                    focusedLabelColor = ElectricBlue,
+                    unfocusedBorderColor = SlateGray.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                voltageOptions.forEach { voltage ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "${voltage.Um} kV",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            onVoltageSelected(voltage)
+                            onMaxVoltageChange(voltage.Um.toString())
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = "kV",
+            modifier = Modifier.weight(0.2f),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Medium,
+                color = SlateGray
+            )
+        )
+    }
+
+    selectedVoltage?.let { voltage ->
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "Lightning Impulse Withstand:",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = SlateGray
+                ),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                voltage.lightning_impulse_withstand.take(4).forEach { value ->
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = ElectricBlue.copy(alpha = 0.1f)
+                        ),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "$value",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = ElectricBlue
+                            )
+                        )
+                    }
+                }
+                if (voltage.lightning_impulse_withstand.size > 4) {
+                    Text(
+                        text = "...",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = SlateGray
+                        ),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VoltageSelectionDropdown(
+    selectedVoltage: VoltageData?,
+    voltageOptions: List<VoltageData>,
+    onVoltageSelected: (VoltageData) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ElectricBlue.copy(alpha = 0.05f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            ElectricBlue.copy(alpha = 0.2f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(
+                            color = ElectricBlue,
+                            shape = RoundedCornerShape(6.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ElectricalServices,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    text = "Maximum Voltage Selection",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = ElectricBlue
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedVoltage?.let { "${it.Um} kV" } ?: "",
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Select Um (kV)") },
+                    placeholder = { Text("Choose voltage level") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ElectricBlue,
+                        focusedLabelColor = ElectricBlue,
+                        unfocusedBorderColor = SlateGray.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    voltageOptions.forEach { voltage ->
+                        DropdownMenuItem(
+                            text = { Text("${voltage.Um} kV") },
+                            onClick = {
+                                onVoltageSelected(voltage)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            selectedVoltage?.let { voltage ->
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Lightning Impulse Withstand:",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = DeepNavy
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    voltage.lightning_impulse_withstand.forEach { value ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                SuccessGreen.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = "$value kV",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = SuccessGreen
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }

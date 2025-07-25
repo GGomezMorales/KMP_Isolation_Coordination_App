@@ -1,6 +1,7 @@
 package org.tavo.project.presentation.screens.conventional
 
 import org.tavo.project.domain.model.SurgeArrester
+import org.tavo.project.presentation.screens.conventional.sections.VoltageData
 
 data class ConventionalUiState(
 //    User input ------------------------------------------
@@ -32,11 +33,16 @@ data class ConventionalUiState(
     val ratedVoltage: String = "",
 
     val surgeArrester: SurgeArrester? = null,
+
+    val voltageOptions: List<VoltageData> = emptyList(),
+    val selectedVoltage: VoltageData? = null,
+    val isLoadingVoltages: Boolean = false
+
 ) {
     //  TODO: Add validation for the input fields. It's possible to separate this logic into a UseCase or Validator class.
     val isInputValid: Boolean
         get() = maxVoltage.toDoubleOrNull() != null &&
-                nominalVoltage.toDoubleOrNull() != null &&
+                (maxVoltage.isNotBlank() || selectedVoltage != null) &&
                 landingFactor.toDoubleOrNull() != null &&
                 designFactor.toDoubleOrNull() != null &&
                 timeFactor.toDoubleOrNull() != null
